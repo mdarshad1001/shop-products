@@ -1,0 +1,44 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Env / secrets
+.env
+.env.*
+*.key
+*.pem
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Data (don't commit datasets)
+data/
+datasets/
+*.csv
+*.xlsx
+*.parquet
+
+# Logs
+*.log
+logs/
+
+# Docker / Postgres volumes (never commit)
+pgdata/
+postgres-data/
+**/pgdata/
+**/postgres-data/
+
+# Vector DB / embeddings caches (if used)
+chroma/
+vectorstore/
+faiss_index/
+*.bin
+
+# Node (if any)
+node_modules/
+dist/
+build/

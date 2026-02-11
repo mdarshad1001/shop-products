@@ -1,0 +1,39 @@
+# requirements.txt placeholder
+
+# Core
+fastapi
+uvicorn
+python-dotenv
+pandas
+
+#DB/pool
+psycopg[binary]
+
+#Ingestion helpers
+
+#Langchain
+langchain
+langchain-openai
+langchain-community
+langchain-postgres
+
+#Caching
+langchain-redis
+redis
+
+#Re-Ranking
+langchain-cohere
+cohere
+
+#Evals
+ragas
+
+sqlalchemy
+langdetect
+pydantic
+pgvector
+langfuse
+jinja2
+python-multipart
+requests
+

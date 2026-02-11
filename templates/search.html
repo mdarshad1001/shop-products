@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Smart Product Assistant</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #f7f7f7;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+    }
+    .search-bar {
+      margin-top: 30px;
+      margin-bottom: 20px;
+    }
+    .product-card {
+      border: 1px solid #e0e0e0;
+      background-color: #fff;
+      transition: box-shadow 0.3s ease;
+      cursor: pointer;
+    }
+    .product-card:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .product-img {
+      height: 220px;
+      object-fit: cover;
+    }
+    .product-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+    .price {
+      color: #ff3e6c;
+      font-weight: bold;
+      font-size: 1rem;
+    }
+    .category-badge {
+      background-color: #f2f2f2;
+      font-size: 0.8rem;
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+    .assistant-answer {
+      background-color: #fff3cd;
+      border-left: 5px solid #ffecb5;
+      padding: 15px;
+      margin-bottom: 20px;
+      font-size: 0.95rem;
+    }
+    #chatButton {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #ff3e6c;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      font-size: 28px;
+      cursor: pointer;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    #chatWindow {
+      position: fixed;
+      bottom: 90px;
+      right: 20px;
+      width: 300px;
+      max-height: 400px;
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      display: none;
+      flex-direction: column;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    #chatHeader {
+      background: #ff3e6c;
+      color: white;
+      padding: 10px;
+      font-weight: bold;
+      border-top-left-radius: 8px;
+      border-top-right-radius: 8px;
+    }
+    #chatMessages {
+      padding: 10px;
+      overflow-y: auto;
+      flex: 1;
+      max-height: 250px;
+      font-size: 0.9rem;
+    }
+    #chatInputArea {
+      display: flex;
+      border-top: 1px solid #ddd;
+    }
+    #chatInput {
+      flex: 1;
+      border: none;
+      padding: 8px;
+      outline: none;
+    }
+    #sendBtn {
+      background: #ff3e6c;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h2 class="text-center mt-4 mb-3">Ask About Our Products</h2>
+
+  {% if message %}
+    <div class="alert alert-success text-center">
+      {{ message }}
+    </div>
+  {% endif %}
+
+  <div class="row justify-content-center search-bar">
+    <div class="col-md-8">
+      <div class="input-group mb-2">
+        <input type="text" id="searchBox" class="form-control" placeholder="e.g. Looking for shoes for trekking">
+        <button class="btn btn-dark" onclick="search()">Search</button>
+      </div>
+
+    </div>
+  </div>
+
+  <div id="loading" class="text-secondary text-center mb-3" style="display: none;">
+    <div class="spinner-border text-secondary" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+  </div>
+
+  <div id="errorMsg" class="text-danger text-center mb-3"></div>
+
+  <div id="results" style="display: none;">
+    <div class="assistant-answer" id="answer"></div>
+    <h5 class="mb-3">Matching Products:</h5>
+    <div id="productList" class="row g-3"></div>
+  </div>
+</div>
+
+<!-- Chatbot Button and Window -->
+<button id="chatButton">💬</button>
+<div id="chatWindow">
+  <div id="chatHeader">Ask AI Assistant</div>
+  <div id="chatMessages"></div>
+  <div id="chatInputArea">
+    <input type="text" id="chatInput" placeholder="Type your question...">
+    <button id="sendBtn">Send</button>
+  </div>
+</div>
+
+<script>
+function sanitizeInput(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML.substring(0, 300);
+}
+
+async function search() {
+  const rawInput = document.getElementById("searchBox").value.trim();
+  const query = sanitizeInput(rawInput);
+
+  const loading = document.getElementById("loading");
+  const errorMsg = document.getElementById("errorMsg");
+  const resultsDiv = document.getElementById("results");
+  const answerDiv = document.getElementById("answer");
+  const productList = document.getElementById("productList");
+
+  if (!query) {
+    alert("Please enter your question.");
+    return;
+  }
+
+  loading.style.display = "block";
+  errorMsg.textContent = "";
+  resultsDiv.style.display = "none";
+  productList.innerHTML = "";
+
+  try {
+    const response = await fetch("/search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query })
+    });
+
+    if (!response.ok) throw new Error("API error");
+    const data = await response.json();
+
+    answerDiv.textContent = data.answer;
+    if (data.products && data.products.length > 0) {
+      data.products.forEach(p => {
+        const productHTML = `
+          <div class="col-sm-6 col-md-4 col-lg-3">
+            <div class="product-card p-2 h-100">
+              <img src="${p.image_url}" class="img-fluid product-img w-100 mb-2" alt="${p.name}" onerror="this.onerror=null;this.src='https://via.placeholder.com/300x220?text=No+Image';">
+              <div class="product-title mb-1">${p.name}</div>
+              <div class="price mb-1">₹${p.price}</div>
+              <div class="category-badge mb-2">${p.category}</div>
+              <div class="product-description text-muted" style="font-size: 0.9rem;">${p.description}</div>
+            </div>
+          </div>
+        `;
+        productList.insertAdjacentHTML("beforeend", productHTML);
+      });
+    } else {
+      productList.innerHTML = "<p class='text-muted'>No relevant products found.</p>";
+    }
+
+    resultsDiv.style.display = "block";
+  } catch (error) {
+    console.error(error);
+    errorMsg.textContent = "Something went wrong. Please try again.";
+  } finally {
+    loading.style.display = "none";
+  }
+}
+
+// Chatbot logic
+document.getElementById("chatButton").onclick = () => {
+  const chatWindow = document.getElementById("chatWindow");
+  chatWindow.style.display = chatWindow.style.display === "none" ? "flex" : "none";
+};
+
+document.getElementById("sendBtn").onclick = async () => {
+  const input = document.getElementById("chatInput").value.trim();
+  const query = sanitizeInput(input);
+  if (!query) return;
+
+  const chatMessages = document.getElementById("chatMessages");
+  chatMessages.innerHTML += `<div><b>You:</b> ${query}</div>`;
+  document.getElementById("chatInput").value = "";
+
+  try {
+    const response = await fetch("/search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query })
+    });
+
+    if (!response.ok) throw new Error("API error");
+    const data = await response.json();
+
+    chatMessages.innerHTML += `<div><b>Assistant:</b> ${data.answer}</div>`;
+    if (data.products && data.products.length > 0) {
+      data.products.forEach(p => {
+        const productHTML = `
+          <div class="product-card p-2 mt-2">
+            <img src="${p.image_url}" class="img-fluid product-img w-100 mb-2" alt="${p.name}" onerror="this.onerror=null;this.src='https://via.placeholder.com/300x220?text=No+Image';">
+            <div class="product-title mb-1">${p.name}</div>
+            <div class="price mb-1">₹${p.price}</div>
+            <div class="category-badge mb-2">${p.category}</div>
+            <div class="product-description text-muted" style="font-size: 0.85rem;">${p.description}</div>
+          </div>
+        `;
+        chatMessages.innerHTML += productHTML;
+      });
+    } else {
+      chatMessages.innerHTML += `<div class="text-muted">No relevant products found.</div>`;
+    }
+
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  } catch (error) {
+    console.error(error);
+    chatMessages.innerHTML += `<div class="text-danger">Something went wrong.</div>`;
+  }
+};
+</script>
+
+</body>
+</html>
